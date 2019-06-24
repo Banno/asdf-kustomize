@@ -1,0 +1,8 @@
+language: c
+script: asdf plugin-test kustomize https://github.com/Banno/asdf-kustomize.git
+before_script:
+  - git clone https://github.com/asdf-vm/asdf.git
+  - . asdf/asdf.sh
+os:
+  - linux
+  - osx
