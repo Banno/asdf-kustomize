@@ -1,6 +1,6 @@
 # asdf-kustomize
 
-[![Build Status](https://travis-ci.org/Banno/asdf-kustomize.svg?branch=master)](https://travis-ci.org/Banno/asdf-kustomize)
+[![Build Status](https://travis-ci.com/Banno/asdf-kustomize.svg?branch=master)](https://travis-ci.com/Banno/asdf-kustomize)
 
 Kustomize plugin for [asdf](https://github.com/asdf-vm/asdf) version manager
 
