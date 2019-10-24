@@ -39,6 +39,7 @@ install_kustomize() {
   local install_type=$1
   local version=$2
   local install_path=$3
+  local tmp_download_dir=$4
   local bin_install_path="$install_path/bin"
   local download_url="$(get_download_url $version)"
 
@@ -46,7 +47,13 @@ install_kustomize() {
 
   local bin_path="${bin_install_path}/kustomize"
   echo "Downloading kustomize from ${download_url}"
-  curl -s -L "$download_url" -o "$bin_path"
+  if [[ "$download_url" == *"tar.gz"* ]]; then
+    curl -s -L "$download_url" -o "$tmp_download_dir/kustomize.tgz"
+    tar xpf "$tmp_download_dir/kustomize.tgz" -C "$tmp_download_dir"
+    cp "$tmp_download_dir/kustomize" "$bin_path"
+  else
+    curl -s -L "$download_url" -o "$bin_path"
+  fi
   chmod +x $bin_path
 }
 
@@ -67,9 +74,21 @@ get_download_url() {
   if [[ "$op" == '<' ]]; then
     echo "https://github.com/kubernetes-sigs/kustomize/releases/download/v${version}/kustomize_${version}_${platform}_amd64"
   else
-    echo "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_kustomize.v${version}_${platform}_amd64"
+    vercomp "$version" "3.3.0"
+    case $? in
+    0) op='=' ;;
+    1) op='>' ;;
+    2) op='<' ;;
+    esac
+    if [[ "$op" == '<' ]]; then
+      echo "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_kustomize.v${version}_${platform}_amd64"
+    else
+      echo "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_${platform}_amd64.tar.gz"
+    fi
   fi
 
 }
 
-install_kustomize $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
+tmp_download_dir="$(mktemp -d -t 'asdf_XXXXXXXX')"
+trap 'rm -rf "${tmp_download_dir}"' EXIT
+install_kustomize $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH $tmp_download_dir
