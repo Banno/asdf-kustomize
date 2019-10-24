@@ -9,10 +9,12 @@ cmd="$cmd $releases_path"
 
 # stolen from https://github.com/rbenv/ruby-build/pull/631/files#diff-fdcfb8a18714b33b07529b7d02b54f1dR942
 function sort_versions() {
-  sed 'h; s/[+-]/./g; s/.p\([[:digit:]]\)/.z\1/; s/$/.z/; G; s/\n/ /' | \
+  sed 'h; s/[+-]/./g; s/.p\([[:digit:]]\)/.z\1/; s/$/.z/; G; s/\n/ /' |
     LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
 }
 
-# Fetch all tag names, and get only second column. Then remove all unnecesary characters.
-versions=$(eval $cmd | grep -oE "tag_name\": *\".{1,15}\"," | sed 's/tag_name\": *\"v//;s/\",//' | sort_versions)
-echo $versions
+# Versions till 3.2.0 are advertised with tag v${version}
+# Versions starting from 3.2.1 are advertised with tag kustomize/v${version}
+versions_till_320=$(eval $cmd | grep -oE "tag_name\": *\"v[0-9].*\"," | grep -vE "v3\.3.*" | sed 's/tag_name\": *\"v//;s/\",//' | sort_versions)
+versions_post_321=$(eval $cmd | grep -oE "tag_name\": *\"kustomize/v[0-9].*\"," | sed 's/tag_name\": *\"kustomize\/v//;s/\",//' | sort_versions)
+echo $versions_till_320 $versions_post_321

@@ -5,8 +5,35 @@ set -o pipefail
 
 ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version  }
 TMPDIR=${TMPDIR:-/tmp}
-[ -n "$ASDF_INSTALL_VERSION" ] || (>&2 echo 'Missing ASDF_INSTALL_VERSION' && exit 1)
-[ -n "$ASDF_INSTALL_PATH" ] || (>&2 echo 'Missing ASDF_INSTALL_PATH' && exit 1)
+[ -n "$ASDF_INSTALL_VERSION" ] || (echo >&2 'Missing ASDF_INSTALL_VERSION' && exit 1)
+[ -n "$ASDF_INSTALL_PATH" ] || (echo >&2 'Missing ASDF_INSTALL_PATH' && exit 1)
+
+# from https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
+function vercomp() {
+  if [[ "$1" == "$2" ]]; then
+    return 0
+  fi
+  local IFS=.
+  # shellcheck disable=SC2206
+  local i ver1=($1) ver2=($2)
+  # fill empty fields in ver1 with zeros
+  for ((i = ${#ver1[@]}; i < ${#ver2[@]}; i++)); do
+    ver1[i]=0
+  done
+  for ((i = 0; i < ${#ver1[@]}; i++)); do
+    if [[ -z ${ver2[i]} ]]; then
+      # fill empty fields in ver2 with zeros
+      ver2[i]=0
+    fi
+    if ((10#${ver1[i]} > 10#${ver2[i]})); then
+      return 1
+    fi
+    if ((10#${ver1[i]} < 10#${ver2[i]})); then
+      return 2
+    fi
+  done
+  return 0
+}
 
 install_kustomize() {
   local install_type=$1
@@ -30,7 +57,19 @@ get_arch() {
 get_download_url() {
   local version="$1"
   local platform="$(get_arch)"
-  echo "https://github.com/kubernetes-sigs/kustomize/releases/download/v${version}/kustomize_${version}_${platform}_amd64"
+
+  vercomp "$version" "3.2.1"
+  case $? in
+  0) op='=' ;;
+  1) op='>' ;;
+  2) op='<' ;;
+  esac
+  if [[ "$op" == '<' ]]; then
+    echo "https://github.com/kubernetes-sigs/kustomize/releases/download/v${version}/kustomize_${version}_${platform}_amd64"
+  else
+    echo "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_kustomize.v${version}_${platform}_amd64"
+  fi
+
 }
 
 install_kustomize $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
