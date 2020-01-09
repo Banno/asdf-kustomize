@@ -65,28 +65,7 @@ get_download_url() {
   local version="$1"
   local platform="$(get_arch)"
 
-  vercomp "$version" "3.2.1"
-  case $? in
-  0) op='=' ;;
-  1) op='>' ;;
-  2) op='<' ;;
-  esac
-  if [[ "$op" == '<' ]]; then
-    echo "https://github.com/kubernetes-sigs/kustomize/releases/download/v${version}/kustomize_${version}_${platform}_amd64"
-  else
-    vercomp "$version" "3.3.0"
-    case $? in
-    0) op='=' ;;
-    1) op='>' ;;
-    2) op='<' ;;
-    esac
-    if [[ "$op" == '<' ]]; then
-      echo "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_kustomize.v${version}_${platform}_amd64"
-    else
-      echo "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_${platform}_amd64.tar.gz"
-    fi
-  fi
-
+  echo "https://github.com/Banno/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_${platform}_amd64.tar.gz"
 }
 
 tmp_download_dir="$(mktemp -d -t 'asdf_XXXXXXXX')"
