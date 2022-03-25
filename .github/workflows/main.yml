@@ -23,5 +23,7 @@ jobs:
     steps:
       - name: Test plugin
         uses: asdf-vm/actions/plugin-test@v1
+        env:
+          OAUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           command: kustomize version
