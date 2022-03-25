@@ -24,7 +24,7 @@ jobs:
       - name: Test plugin
         uses: asdf-vm/actions/plugin-test@v1
         with:
-          command: kustomize --version
+          command: kustomize version
 
   lint:
     runs-on: ubuntu-latest
