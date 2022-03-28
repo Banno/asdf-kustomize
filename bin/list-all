@@ -15,6 +15,7 @@ function sort_versions() {
 
 # Versions till 3.2.0 are advertised with tag v${version}
 # Versions starting from 3.2.1 are advertised with tag kustomize/v${version}
-versions_till_320=$(eval $cmd | grep -oE "tag_name\": *\"v[0-9].*\"," | grep -vE "(v3\.[3-9]|v[4-9]).*" | sed 's/tag_name\": *\"v//;s/\",//' | sort_versions)
-versions_post_321=$(eval $cmd | grep -oE "tag_name\": *\"kustomize/v[0-9].*\"," | sed 's/tag_name\": *\"kustomize\/v//;s/\",//' | sort_versions)
+raw_versions="$(eval $cmd)"
+versions_till_320=$(echo "$raw_versions" | grep -oE "tag_name\": *\"v[0-9].*\"," | grep -vE "(v3\.[3-9]|v[4-9]).*" | sed 's/tag_name\": *\"v//;s/\",//' | sort_versions)
+versions_post_321=$(echo "$raw_versions" | grep -oE "tag_name\": *\"kustomize/v[0-9].*\"," | sed 's/tag_name\": *\"kustomize\/v//;s/\",//' | sort_versions)
 echo $versions_till_320 $versions_post_321
