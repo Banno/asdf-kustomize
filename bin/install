@@ -64,12 +64,14 @@ get_platform() {
 get_arch() {
   local arch; arch=$(uname -m | tr '[:upper:]' '[:lower:]')
   case ${arch} in
+  arm64) # m1 macs
+    arch='arm64';;
+  aarch64) # all other arm64 devices
+    arch='arm64';;
   x86_64)
-    arch='amd64'
-    ;;
-  arm64)
-    arch='arm64'
-    ;;
+    arch='amd64';;
+  *) # fallback
+    arch='amd64';;
   esac
 
   echo "${arch}"
