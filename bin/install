@@ -40,21 +40,39 @@ install_kustomize() {
   local version=$2
   local install_path=$3
   local tmp_download_dir=$4
-  local bin_install_path="$install_path/bin"
+  local bin_install_path="${install_path}/bin"
   local download_url="$(get_download_url $version)"
+  local download_fallback_url=""
+  if [[ "$(get_platform)" == "darwin" && "$(get_arch)" == "arm64" ]] ; then
+    # some kustomize versions don't have darwin_arm64 binaries 
+    # (example: https://github.com/kubernetes-sigs/kustomize/releases/tag/kustomize%2Fv5.1.0),
+    # so we fall back to amd64 binaries which successfully run on M1/M2 with Rosetta
+    download_fallback_url="$(get_download_url $version amd64)"
+  fi
 
   mkdir -p "${bin_install_path}"
 
   local bin_path="${bin_install_path}/kustomize"
+  local download_path="${tmp_download_dir}/kustomize.tgz"
   echo "Downloading kustomize from ${download_url}"
-  if [[ "$download_url" == *"tar.gz"* ]]; then
-    curl -s -L "$download_url" -o "$tmp_download_dir/kustomize.tgz"
-    tar xpf "$tmp_download_dir/kustomize.tgz" -C "$tmp_download_dir"
-    cp "$tmp_download_dir/kustomize" "$bin_path"
+
+  if [[ "${download_url}" == *"tar.gz"* ]]; then
+    set +e
+    curl -s --fail -L "$download_url" -o "${download_path}"
+    result=$?
+    set -e
+
+    if [[ "${result}" -ne 0 ]] && [[ ! -z "${download_fallback_url}" ]]; then
+      echo "Failed to download kustomize from ${download_url}"
+      echo "Fallback: downloading kustomize from ${download_fallback_url}"
+      curl -s --fail -L "${download_fallback_url}" -o "${download_path}"
+    fi
+    tar xpf "${download_path}" -C "${tmp_download_dir}"
+    cp "${tmp_download_dir}/kustomize" "${bin_path}"
   else
-    curl -s -L "$download_url" -o "$bin_path"
+    curl -s -L "${download_url}" -o "${bin_path}"
   fi
-  chmod +x $bin_path
+  chmod +x "${bin_path}"
 }
 
 get_platform() {
@@ -81,6 +99,9 @@ get_download_url() {
   local version="$1"
   local platform="$(get_platform)"
   local arch="$(get_arch)"
+  if [[ ! -z "$2" ]] ; then
+    arch="$2"
+  fi
 
   if [[ "$version" == *"-banno"* ]]; then
       echo "https://github.com/Banno/kustomize/releases/download/kustomize%2Fv${version}/kustomize_v${version}_${platform}_${arch}.tar.gz"
