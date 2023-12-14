@@ -21,9 +21,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Test plugin
+      - name: Test plugin (OAuth Token)
         uses: asdf-vm/actions/plugin-test@v1
         env:
           OAUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           command: kustomize version
+      - name: Test plugin (GitHub API Token)
+        uses: asdf-vm/actions/plugin-test@v1
+        env:
+          GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          command: kustomize version
+
