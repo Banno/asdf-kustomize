@@ -9,6 +9,11 @@ on:
       - "**.md"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: "write"
+
 jobs:
   plugin_test:
     strategy:
