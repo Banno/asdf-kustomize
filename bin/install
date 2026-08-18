@@ -35,6 +35,52 @@ function vercomp() {
   return 0
 }
 
+# Verifies a downloaded release artifact against the checksums.txt published
+# alongside it in the same GitHub release. Fails the install on any mismatch
+# or missing entry; only skips when the release publishes no checksums.txt at
+# all (old kustomize releases pre-dating checksum publication).
+verify_checksum() {
+  local download_url=$1
+  local download_path=$2
+  local tmp_download_dir=$3
+  local checksums_url="${download_url%/*}/checksums.txt"
+  local checksums_path="${tmp_download_dir}/checksums.txt"
+  local artifact_name="${download_url##*/}"
+  local result
+
+  set +e
+  curl -s --fail -L "${checksums_url}" -o "${checksums_path}"
+  result=$?
+  set -e
+
+  if [[ "${result}" -ne 0 ]]; then
+    echo >&2 "Warning: this release does not publish checksums.txt; skipping checksum verification"
+    return 0
+  fi
+
+  local expected_checksum
+  expected_checksum="$(awk -v name="${artifact_name}" '$2 == name { print $1 }' "${checksums_path}" | head -n1)"
+  if [[ -z "${expected_checksum}" ]]; then
+    echo >&2 "Error: no checksum entry for ${artifact_name} in ${checksums_url}"
+    return 1
+  fi
+
+  local actual_checksum
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual_checksum="$(sha256sum "${download_path}" | awk '{ print $1 }')"
+  else
+    actual_checksum="$(shasum -a 256 "${download_path}" | awk '{ print $1 }')"
+  fi
+
+  if [[ "${expected_checksum}" != "${actual_checksum}" ]]; then
+    echo >&2 "Error: checksum verification failed for ${artifact_name}"
+    echo >&2 "  expected: ${expected_checksum}"
+    echo >&2 "  actual:   ${actual_checksum}"
+    return 1
+  fi
+  echo "Checksum verified for ${artifact_name}"
+}
+
 install_kustomize() {
   local install_type=$1
   local version=$2
@@ -57,6 +103,7 @@ install_kustomize() {
   echo "Downloading kustomize from ${download_url}"
 
   if [[ "${download_url}" == *"tar.gz"* ]]; then
+    local used_url="${download_url}"
     set +e
     curl -s --fail -L "$download_url" -o "${download_path}"
     result=$?
@@ -66,11 +113,16 @@ install_kustomize() {
       echo "Failed to download kustomize from ${download_url}"
       echo "Fallback: downloading kustomize from ${download_fallback_url}"
       curl -s --fail -L "${download_fallback_url}" -o "${download_path}"
+      used_url="${download_fallback_url}"
     fi
+    verify_checksum "${used_url}" "${download_path}" "${tmp_download_dir}"
     tar xpf "${download_path}" -C "${tmp_download_dir}"
     cp "${tmp_download_dir}/kustomize" "${bin_path}"
   else
-    curl -s -L "${download_url}" -o "${bin_path}"
+    local raw_download_path="${tmp_download_dir}/kustomize_download"
+    curl -s --fail -L "${download_url}" -o "${raw_download_path}"
+    verify_checksum "${download_url}" "${raw_download_path}" "${tmp_download_dir}"
+    cp "${raw_download_path}" "${bin_path}"
   fi
   chmod +x "${bin_path}"
 }
